@@ -1,6 +1,24 @@
 const { mouse, left, right, Button, keyboard, Key } = require('@nut-tree-fork/nut-js');
 const fs = require('fs');
 const path = require('path');
+const readline = require('readline');
+
+// Setup ESC key handler
+readline.emitKeypressEvents(process.stdin);
+if (process.stdin.isTTY) {
+    process.stdin.setRawMode(true);
+}
+
+process.stdin.on('keypress', (str, key) => {
+    if (key && key.name === 'escape') {
+        console.log('\n\n🛑 ESC key pressed - Stopping simulator...');
+        process.exit(0);
+    }
+    if (key && key.ctrl && key.name === 'c') {
+        console.log('\n\n🛑 Ctrl+C pressed - Stopping simulator...');
+        process.exit(0);
+    }
+});
 
 // Configuration
 const TYPING_SPEED_MIN = 50;  // Minimum delay between keystrokes (ms)
@@ -162,9 +180,9 @@ async function main() {
         console.log(`Loaded ${textToType.length} characters from file.\n`);
 
         // Give user time to focus the target window
-        console.log('Starting in 5 seconds... Please focus the target window!');
-        console.log('⚠️  This will run FOREVER until you stop it (Ctrl+C)');
-        for (let i = 5; i > 0; i--) {
+        console.log('Starting in 30 seconds... Please focus the target window!');
+        console.log('⚠️  Press ESC to stop the simulator at any time');
+        for (let i = 30; i > 0; i--) {
             console.log(`${i}...`);
             await sleep(1000);
         }
