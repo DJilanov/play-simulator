@@ -125,34 +125,109 @@ async function getMousePosition() {
 }
 
 /**
- * Type text character by character with realistic timing
+ * Scroll mouse wheel
  */
-async function typeText(text) {
+async function scrollMouseWheel(amount) {
+    // Positive amount scrolls down, negative scrolls up
+    const scrollAmount = amount > 0 ? -amount : Math.abs(amount);
+    await mouse.scrollDown(Math.abs(scrollAmount));
+    console.log(`🖱️  Scrolled ${Math.abs(scrollAmount)} pixels`);
+    await sleep(200);
+}
+
+/**
+ * Move mouse randomly without clicking
+ */
+async function moveMouseRandomly(range) {
+    const currentPos = await mouse.getPosition();
+    const offsetX = getRandomOffsetRange(range);
+    const offsetY = getRandomOffsetRange(range);
+    const newX = currentPos.x + offsetX;
+    const newY = currentPos.y + offsetY;
+
+    console.log(`🔀 Random mouse movement: (${offsetX}, ${offsetY}) pixels`);
+    await moveMouse(newX, newY, true);
+}
+
+/**
+ * Type text character by character with realistic timing, scrolling, and mouse movements
+ */
+async function typeText(text, sessionStartTime) {
     console.log('Starting to type text...');
     console.log(`Total characters: ${text.length}`);
 
-    for (let i = 0; i < text.length; i++) {
-        const char = text[i];
+    let rowCount = 0;
+    let lastScrollRow = 0;
+    let lastMouseMoveTime = Date.now();
+    let lastPauseTime = sessionStartTime;
 
-        // Handle special characters
-        if (char === '\n') {
-            console.log('\\n - New line');
-            await keyboard.type(Key.Enter);
-        } else if (char === '\t') {
-            console.log('\\t - Tab');
-            await keyboard.type(Key.Tab);
-        } else {
+    const lines = text.split('\n');
+    let charIndex = 0;
+
+    for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+        const line = lines[lineIndex];
+
+        // Type each character in the line
+        for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+
+            // Check if it's time for a 20-minute pause (±2 min)
+            const timeSinceLastPause = Date.now() - lastPauseTime;
+            const pauseInterval = (20 * 60 * 1000) + getRandomOffsetRange(2 * 60 * 1000); // 20 min ± 2 min
+
+            if (timeSinceLastPause >= pauseInterval) {
+                const pauseDuration = (2 * 60 * 1000) + getRandomOffsetRange(30 * 1000); // 2 min ± 30 sec
+                console.log(`\n⏸️  Taking a ${Math.round(pauseDuration / 1000)} second break...`);
+                await sleep(pauseDuration);
+                lastPauseTime = Date.now();
+                lastMouseMoveTime = Date.now(); // Reset mouse move timer after pause
+                console.log('▶️  Resuming typing...\n');
+            }
+
+            // Check if it's time for random mouse movement (every 30 seconds)
+            const timeSinceLastMove = Date.now() - lastMouseMoveTime;
+            if (timeSinceLastMove >= 30000) { // 30 seconds
+                const moveRange = 40 + getRandomOffsetRange(5); // 40 ± 5 pixels
+                await moveMouseRandomly(moveRange);
+                lastMouseMoveTime = Date.now();
+            }
+
             // Type regular character
-            await keyboard.type(char);
+            if (char === '\t') {
+                await keyboard.type(Key.Tab);
+            } else {
+                await keyboard.type(char);
+            }
+
+            // Random delay between keystrokes for realistic typing
+            const delay = getRandomDelay();
+            await sleep(delay);
+
+            charIndex++;
+
+            // Progress indicator every 50 characters
+            if (charIndex % 50 === 0) {
+                console.log(`Typed ${charIndex}/${text.length} characters...`);
+            }
         }
 
-        // Random delay between keystrokes for realistic typing
-        const delay = getRandomDelay();
-        await sleep(delay);
+        // Press Enter for new line (except for last line)
+        if (lineIndex < lines.length - 1) {
+            await keyboard.type(Key.Enter);
+            rowCount++;
+            charIndex++; // Count the newline character
 
-        // Progress indicator every 50 characters
-        if ((i + 1) % 50 === 0) {
-            console.log(`Typed ${i + 1}/${text.length} characters...`);
+            // Scroll every 10 rows (±1)
+            const scrollInterval = 10 + getRandomOffsetRange(1);
+            if (rowCount - lastScrollRow >= scrollInterval) {
+                const scrollAmount = 50 + getRandomOffsetRange(5); // 50 ± 5 pixels
+                await scrollMouseWheel(scrollAmount);
+                lastScrollRow = rowCount;
+            }
+
+            // Random delay between keystrokes
+            const delay = getRandomDelay();
+            await sleep(delay);
         }
     }
 
@@ -192,6 +267,7 @@ async function main() {
         let cycleNumber = 1;
         const startY = 400;  // Starting Y position
         const yOffset = 50;  // Pixels to move down each cycle
+        const sessionStartTime = Date.now();
 
         while (true) {
             console.log(`\n${'='.repeat(50)}`);
@@ -212,10 +288,8 @@ async function main() {
             console.log(`Clicking file at position (~600, ~600) -> actual: (${clickX}, ${clickY})...`);
             await moveAndClick(clickX, clickY);
 
-            // Step 3: Type the text from file
-         
-         
-            await typeText(textToType);
+            // Step 3: Type the text from file with human-like behaviors
+            await typeText(textToType, sessionStartTime);
 
             console.log(`\n✅ Cycle ${cycleNumber} complete!`);
             console.log('Waiting 2 seconds before next cycle...\n');
@@ -239,6 +313,8 @@ module.exports = {
     doubleClickAt,
     getMousePosition,
     typeText,
+    scrollMouseWheel,
+    moveMouseRandomly,
     getRandomOffsetRange,
     Button,
     Key,
