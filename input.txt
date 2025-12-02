@@ -1,0 +1,15 @@
+
+
+Hello, this is a test of the keyboard simulator!
+
+This text demonstrates:
+- Multiple lines
+- Proper spacing between words
+- Punctuation marks: ! ? . , ;
+- Numbers: 1234567890
+
+Each character is typed with realistic timing,
+simulating human typing behavior.
+
+The end.
+

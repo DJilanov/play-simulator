@@ -1,0 +1,13 @@
+{
+  "name": "mouse-keyboard-simulator",
+  "version": "1.0.0",
+  "description": "Simulates mouse movements, clicks and keyboard input",
+  "main": "simulator.js",
+  "scripts": {
+    "start": "node simulator.js"
+  },
+  "dependencies": {
+    "@nut-tree-fork/nut-js": "^4.2.6"
+  },
+  "type": "commonjs"
+}
