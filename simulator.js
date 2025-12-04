@@ -2,6 +2,9 @@ const { mouse, left, right, Button, keyboard, Key } = require('@nut-tree-fork/nu
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
+const { exec } = require('child_process');
+const { promisify } = require('util');
+const execAsync = promisify(exec);
 
 // Setup ESC key handler
 readline.emitKeypressEvents(process.stdin);
@@ -52,6 +55,39 @@ function getRandomOffset() {
  */
 function getRandomOffsetRange(range) {
     return Math.floor(Math.random() * (range * 2 + 1)) - range;
+}
+
+/**
+ * Handle pause with macOS app switching (Chrome refresh -> Slack -> Cursor)
+ */
+async function handleMacOSPause(pauseDuration) {
+    try {
+        console.log('🌐 Opening Google Chrome...');
+        await execAsync('open -a "Google Chrome"');
+        await sleep(1000);
+
+        console.log('🔄 Refreshing Chrome page...');
+        await execAsync('osascript -e \'tell application "Google Chrome" to activate\' -e \'tell application "System Events" to keystroke "r" using command down\'');
+        await sleep(1000);
+
+        console.log('💬 Opening Slack...');
+        await execAsync('open -a "Slack"');
+        await sleep(1000);
+
+        console.log(`⏸️  Pausing in Slack for ${Math.round(pauseDuration / 1000)} seconds...`);
+        await sleep(pauseDuration);
+
+        console.log('💻 Returning to Cursor...');
+        await execAsync('open -a "Cursor"');
+        await sleep(1000);
+
+        console.log('▶️  Resuming typing...\n');
+    } catch (error) {
+        console.error('Error during macOS app switching:', error.message);
+        console.log('⚠️  Falling back to simple pause...');
+        await sleep(pauseDuration);
+        console.log('▶️  Resuming typing...\n');
+    }
 }
 
 /**
@@ -178,10 +214,17 @@ async function typeText(text, sessionStartTime) {
             if (timeSinceLastPause >= pauseInterval) {
                 const pauseDuration = (2 * 60 * 1000) + getRandomOffsetRange(30 * 1000); // 2 min ± 30 sec
                 console.log(`\n⏸️  Taking a ${Math.round(pauseDuration / 1000)} second break...`);
-                await sleep(pauseDuration);
+
+                // Check if running on macOS
+                if (process.platform === 'darwin') {
+                    await handleMacOSPause(pauseDuration);
+                } else {
+                    await sleep(pauseDuration);
+                    console.log('▶️  Resuming typing...\n');
+                }
+
                 lastPauseTime = Date.now();
                 lastMouseMoveTime = Date.now(); // Reset mouse move timer after pause
-                console.log('▶️  Resuming typing...\n');
             }
 
             // Check if it's time for random mouse movement (every 30 seconds)
@@ -194,7 +237,8 @@ async function typeText(text, sessionStartTime) {
 
             // Type regular character
             if (char === '\t') {
-                await keyboard.type(Key.Tab);
+                // Type 4 spaces instead of Tab key to ensure consistent indentation
+                await keyboard.type('    '); // 4 spaces
             } else {
                 await keyboard.type(char);
             }
