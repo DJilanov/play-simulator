@@ -258,6 +258,12 @@ async function typeText(text, sessionStartTime) {
         // Press Enter for new line (except for last line)
         if (lineIndex < lines.length - 1) {
             await keyboard.type(Key.Enter);
+
+            // Move to beginning of line to clear auto-indent
+            await sleep(50);
+            await keyboard.type(Key.LeftCmd, Key.Left); // Cmd+Left = go to start of line
+            await sleep(50);
+
             rowCount++;
             charIndex++; // Count the newline character
 
