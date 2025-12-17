@@ -289,11 +289,9 @@ async function typeText(text, sessionStartTime) {
  */
 async function main() {
     try {
-        console.log('=== Mouse & Keyboard Simulator (Infinite Loop Mode) ===\n');
-
+        
         // Read text file
         const textFilePath = path.join(__dirname, 'input.txt');
-        console.log(`Reading text from: ${textFilePath}`);
 
         if (!fs.existsSync(textFilePath)) {
             console.error(`Error: input.txt not found at ${textFilePath}`);
@@ -302,11 +300,8 @@ async function main() {
         }
 
         const textToType = fs.readFileSync(textFilePath, 'utf8');
-        console.log(`Loaded ${textToType.length} characters from file.\n`);
 
         // Give user time to focus the target window
-        console.log('Starting in 30 seconds... Please focus the target window!');
-        console.log('⚠️  Press ESC to stop the simulator at any time');
         for (let i = 30; i > 0; i--) {
             console.log(`${i}...`);
             await sleep(1000);
